@@ -18,11 +18,16 @@ brew install awscli
 ### Windows (PowerShell)
 
 Download and run the installer:
+
 - [AWS CLI MSI Installer for Windows](https://awscli.amazonaws.com/AWSCLIV2.msi)
 
 Or using PowerShell:
+
 ```powershell
-msiexec.exe /i https://awscli.amazonaws.com/AWSCLIV2.msi
+# Download and install AWS CLI
+$installerPath = "$env:TEMP\AWSCLIV2.msi"
+Invoke-WebRequest -Uri https://awscli.amazonaws.com/AWSCLIV2.msi -OutFile $installerPath
+Start-Process msiexec.exe -ArgumentList "/i $installerPath /quiet" -Wait
 ```
 
 ### Linux
@@ -50,12 +55,14 @@ AWS uses credentials to authenticate your API requests. There are two main metho
 #### Method A: Environment Variables (Temporary - Recommended for Learner Lab)
 
 **What is AWS STS?**
+
 - **STS (Security Token Service)** provides temporary security credentials
 - Used by AWS Academy Learner Lab for time-limited access
 - Credentials expire after a few hours (typically 3-4 hours)
 - More secure than long-term credentials
 
 **Why use environment variables?**
+
 - Temporary credentials that expire automatically
 - No need to update credential files
 - Easy to refresh when lab session restarts
@@ -64,6 +71,7 @@ AWS uses credentials to authenticate your API requests. There are two main metho
 **macOS/Linux (Bash/Zsh):**
 
 In AWS Academy Learner Lab:
+
 1. Click **AWS Details** button
 2. Click **Show** next to AWS CLI credentials
 3. Copy the credentials and paste in terminal:
@@ -85,15 +93,18 @@ $env:AWS_DEFAULT_REGION="us-east-1"
 ```
 
 **Characteristics:**
-- ✅ Temporary (expires with terminal session)
+
+- ✅ Environment variables are cleared when the terminal closes
+- ✅ STS tokens expire by their AWS-issued timestamp (15 min to 12 hours)
 - ✅ Secure (no files to manage)
 - ✅ Easy to refresh
 - ❌ Must re-export for each new terminal
-- ❌ Lost when terminal closes
+- ❌ Environment variables are lost when the terminal closes
 
 #### Method B: Credentials File (Persistent)
 
 **When to use:**
+
 - Long-term AWS accounts (not Learner Lab)
 - Want credentials to persist across sessions
 - Using IAM user credentials (not STS)
@@ -101,14 +112,18 @@ $env:AWS_DEFAULT_REGION="us-east-1"
 **macOS/Linux:**
 
 Create/edit `~/.aws/credentials`:
+
 ```bash
 [default]
 aws_access_key_id = YOUR_ACCESS_KEY
 aws_secret_access_key = YOUR_SECRET_KEY
-aws_session_token = YOUR_SESSION_TOKEN
 ```
 
+> **Note:** If you are using temporary STS credentials (e.g., from AWS Academy),
+> add `aws_session_token = YOUR_SESSION_TOKEN` to this file as well.
+
 Create/edit `~/.aws/config`:
+
 ```bash
 [default]
 region = us-east-1
@@ -118,21 +133,26 @@ output = json
 **Windows:**
 
 Create/edit `C:\Users\USERNAME\.aws\credentials`:
-```
+
+```text
 [default]
 aws_access_key_id = YOUR_ACCESS_KEY
 aws_secret_access_key = YOUR_SECRET_KEY
-aws_session_token = YOUR_SESSION_TOKEN
 ```
 
+> **Note:** If you are using temporary STS credentials (e.g., from AWS Academy),
+> add `aws_session_token = YOUR_SESSION_TOKEN` to this file as well.
+
 Create/edit `C:\Users\USERNAME\.aws\config`:
-```
+
+```text
 [default]
 region = us-east-1
 output = json
 ```
 
 **Characteristics:**
+
 - ✅ Persistent across terminal sessions
 - ✅ No need to re-configure
 - ❌ Must manually update when credentials expire
@@ -141,11 +161,11 @@ output = json
 ### Comparison: Environment Variables vs Credentials File
 
 | Aspect | Environment Variables | Credentials File |
-|--------|----------------------|------------------|
+| --- | --- | --- |
 | **Persistence** | Terminal session only | Across all sessions |
 | **Security** | More secure (temporary) | Less secure (persistent) |
 | **Use Case** | Learner Lab, temporary access | Long-term AWS accounts |
-| **Expiration** | Automatic (terminal closes) | Manual update needed |
+| **Expiration** | STS timestamp + env vars cleared on terminal close | Manual update needed |
 | **Setup** | Copy-paste each session | One-time setup |
 | **Best For** | AWS Academy, STS tokens | IAM users, production |
 
@@ -154,43 +174,53 @@ output = json
 Test your credentials with STS:
 
 **macOS/Linux:**
+
 ```bash
 aws sts get-caller-identity
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 aws sts get-caller-identity
 ```
 
 **What is this command doing?**
+
 - `aws sts get-caller-identity` calls AWS Security Token Service
 - Returns your AWS account ID, user ID, and ARN
 - Confirms your credentials are valid
 - Does not create or modify any resources
 
-Expected output:
+Expected output (Learner Lab with assumed-role credentials):
+
 ```json
 {
-    "UserId": "AIDAI...",
+    "UserId": "AROA...:lab-session",
     "Account": "123456789012",
-    "Arn": "arn:aws:iam::123456789012:user/username"
+    "Arn": "arn:aws:sts::123456789012:assumed-role/LabRole/lab-session"
 }
 ```
+
+> **Note:** If you are using long-lived IAM user credentials instead of
+> Learner Lab, the ARN format is `arn:aws:iam::123456789012:user/username`.
 
 ## Step 3: Create S3 Bucket with CLI
 
 **macOS/Linux:**
+
 ```bash
 aws s3 mb s3://an-2026-cli-[your-initials]
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 aws s3 mb s3://an-2026-cli-[your-initials]
 ```
 
 Verify bucket creation:
+
 ```bash
 aws s3 ls
 ```
@@ -198,6 +228,7 @@ aws s3 ls
 ## Step 4: Enable Versioning
 
 **macOS/Linux:**
+
 ```bash
 aws s3api put-bucket-versioning \
     --bucket an-2026-cli-[your-initials] \
@@ -205,6 +236,7 @@ aws s3api put-bucket-versioning \
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 aws s3api put-bucket-versioning `
     --bucket an-2026-cli-[your-initials] `
@@ -214,6 +246,7 @@ aws s3api put-bucket-versioning `
 ## Step 5: Enable Encryption
 
 **macOS/Linux:**
+
 ```bash
 aws s3api put-bucket-encryption \
     --bucket an-2026-cli-[your-initials] \
@@ -227,6 +260,7 @@ aws s3api put-bucket-encryption \
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 aws s3api put-bucket-encryption `
     --bucket an-2026-cli-[your-initials] `
@@ -236,6 +270,7 @@ aws s3api put-bucket-encryption `
 ## Step 6: Block Public Access
 
 **macOS/Linux:**
+
 ```bash
 aws s3api put-public-access-block \
     --bucket an-2026-cli-[your-initials] \
@@ -244,6 +279,7 @@ aws s3api put-public-access-block \
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 aws s3api put-public-access-block `
     --bucket an-2026-cli-[your-initials] `
@@ -255,21 +291,25 @@ aws s3api put-public-access-block `
 Create a test file:
 
 **macOS/Linux:**
+
 ```bash
 echo "Hello from AWS CLI" > test-cli.txt
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 "Hello from AWS CLI" | Out-File -FilePath test-cli.txt
 ```
 
 Upload to S3:
+
 ```bash
 aws s3 cp test-cli.txt s3://an-2026-cli-[your-initials]/
 ```
 
 List bucket contents:
+
 ```bash
 aws s3 ls s3://an-2026-cli-[your-initials]/
 ```
@@ -285,6 +325,7 @@ aws s3 cp s3://an-2026-cli-[your-initials]/test-cli.txt downloaded-cli.txt
 Create a local directory with files:
 
 **macOS/Linux:**
+
 ```bash
 mkdir local-folder
 echo "File 1" > local-folder/file1.txt
@@ -292,6 +333,7 @@ echo "File 2" > local-folder/file2.txt
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 New-Item -ItemType Directory -Path local-folder
 "File 1" | Out-File -FilePath local-folder/file1.txt
@@ -299,6 +341,7 @@ New-Item -ItemType Directory -Path local-folder
 ```
 
 Sync to S3:
+
 ```bash
 aws s3 sync ./local-folder s3://an-2026-cli-[your-initials]/folder/
 ```
@@ -308,7 +351,8 @@ aws s3 sync ./local-folder s3://an-2026-cli-[your-initials]/folder/
 **Method**: AWS CLI
 
 **Bucket Details:**
-```
+
+```text
 Bucket Name: an-2026-cli-[your-initials]
 Region: us-east-1
 Access: Private (public access blocked)
@@ -319,15 +363,16 @@ Encryption: AES256
 ## Comparison
 
 | Aspect | Rating | Notes |
-|--------|--------|-------|
+| --- | --- | --- |
 | **Ease of Use** | ⭐⭐⭐ | Requires command-line knowledge |
 | **Automation** | ⭐⭐⭐⭐ | Scriptable, repeatable |
 | **Speed** | ⭐⭐⭐⭐ | Fast for repetitive tasks |
 | **Flexibility** | ⭐⭐⭐ | Access to most AWS features |
 | **Learning Curve** | Medium | Need to learn commands |
-| **Best For** | Scripts, CI/CD, automation |
+| **Best For** | Scripts | CI/CD, automation |
 
 **Advantages:**
+
 - Fast and efficient for repetitive tasks
 - Scriptable and automatable
 - Works in CI/CD pipelines
@@ -335,6 +380,7 @@ Encryption: AES256
 - Version control friendly
 
 **Disadvantages:**
+
 - Requires command-line knowledge
 - Steeper learning curve
 - Less visual feedback
@@ -344,11 +390,13 @@ Encryption: AES256
 ## Cleanup
 
 Delete all objects:
+
 ```bash
 aws s3 rm s3://an-2026-cli-[your-initials] --recursive
 ```
 
 Delete bucket:
+
 ```bash
 aws s3 rb s3://an-2026-cli-[your-initials]
 ```
