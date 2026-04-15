@@ -1,8 +1,0 @@
-  aws-cli:
-    image: amazon/aws-cli:latest
-    container_name: aws-cli
-    stdin_open: true
-    tty: true
-    entrypoint: ["sh"]
-
-# docker compose run --rm aws-cli
